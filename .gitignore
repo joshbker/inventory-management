@@ -1,4 +1,5 @@
 .env/
 database.log
 inventory.db
+assets/qr_codes/
 **/__pycache__/
