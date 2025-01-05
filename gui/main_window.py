@@ -319,12 +319,16 @@ class MainWindow(tk.Toplevel, BaseWindow):
             
             # Update status when scanner closes
             def on_scanner_close():
-                self.active_scanner = None
+                if self.active_scanner is not None:
+                    self.active_scanner = None
                 self.status_label.configure(text="")
             
-            self.active_scanner.protocol("WM_DELETE_WINDOW", 
-                lambda: [on_scanner_close(), self.active_scanner.on_closing()])
-                
+            # Safely close scanner
+            self.active_scanner.protocol(
+                "WM_DELETE_WINDOW", 
+                lambda: (self.active_scanner.on_closing() if self.active_scanner else None, on_scanner_close())
+            )
+                    
         except Exception as e:
             messagebox.showerror("Error", f"Failed to open scanner: {str(e)}")
             self.active_scanner = None

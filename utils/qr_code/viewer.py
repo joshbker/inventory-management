@@ -15,10 +15,9 @@ class QRCodeViewer(tk.Toplevel, BaseWindow):
     def setup_window(self):
         self.setup_window_base(f"QR Code - {self.product.name}", 400, 500)
         self.configure(bg="#f0f0f0")
-        
-        # Make it modal
-        self.transient(self.parent)
-        self.grab_set()
+
+        # Allow interactions with other windows
+        self.grab_release()
 
     def create_widgets(self):
         # Create main frame
@@ -49,9 +48,9 @@ class QRCodeViewer(tk.Toplevel, BaseWindow):
             # Resize if needed while maintaining aspect ratio
             if image.size[0] > 300 or image.size[1] > 300:
                 image.thumbnail((300, 300))
-            
+
             photo = ImageTk.PhotoImage(image)
-            
+
             # Create label to display image
             image_label = ttk.Label(main_frame, image=photo)
             image_label.image = photo  # Keep a reference to prevent garbage collection
@@ -66,7 +65,7 @@ class QRCodeViewer(tk.Toplevel, BaseWindow):
             ttk.Label(details_frame, text=f"Name: {self.product.name}").pack(anchor='w', padx=5, pady=2)
             ttk.Label(details_frame, text=f"Category: {self.product.category}").pack(anchor='w', padx=5, pady=2)
             ttk.Label(details_frame, text=f"Price: ${self.product.price}").pack(anchor='w', padx=5, pady=2)
-            
+
             # Save location
             path_label = ttk.Label(
                 main_frame,
@@ -77,4 +76,4 @@ class QRCodeViewer(tk.Toplevel, BaseWindow):
             path_label.pack(pady=(20, 0))
 
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to load QR code: {str(e)}")#
+            messagebox.showerror("Error", f"Failed to load QR code: {str(e)}")
