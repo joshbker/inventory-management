@@ -49,15 +49,11 @@ The goal is to create a user-friendly, secure application that combines the foll
 
 ---
 
-## Recommended Python GUI Libraries
-You may use one of the following libraries to develop the GUI:
-- **PyQt5**
-- **Tkinter**
-- **PySide2**
-- **Kivy**
-
----
-
 ## Key Considerations
 - Ensure **consistency** across all application components.
 - The application can have **one or more windows**, linked seamlessly for a smooth user experience.
+- Monitor stock levels for all products.​
+- Reduce stock when a sale is recorded.​
+- Alert for low stock to reorder products.​
+- Update stock when new shipments arrive.​
+- Use QR codes for product identification and tracking.
