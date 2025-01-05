@@ -153,10 +153,19 @@ class OrderQueries:
         return cursor.lastrowid
 
     @staticmethod
-    def get_user_orders(conn: sqlite3.Connection, user_id: int) -> List[Dict[str, Any]]:
+    def get_all_orders(conn: sqlite3.Connection) -> List[Dict[str, Any]]:
         cursor = conn.cursor()
-        cursor.execute("""
-            SELECT * FROM orders WHERE user_id = ? 
-            ORDER BY order_date DESC
-        """, (user_id,))
+        cursor.execute("SELECT * FROM orders ORDER BY order_date DESC")
         return cursor.fetchall()
+
+    @staticmethod
+    def update_order_status(conn: sqlite3.Connection, order_id: int, status: str) -> None:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE orders SET status = ? WHERE order_id = ?", (status, order_id))
+        conn.commit()
+
+    @staticmethod
+    def delete_order(conn: sqlite3.Connection, order_id: int) -> None:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM orders WHERE order_id = ?", (order_id,))
+        conn.commit()
