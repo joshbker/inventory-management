@@ -54,6 +54,5 @@ The goal is to create a user-friendly, secure application that combines the foll
 - The application can have **one or more windows**, linked seamlessly for a smooth user experience.
 - Monitor stock levels for all products.​
 - Reduce stock when a sale is recorded.​
-- Alert for low stock to reorder products.​
 - Update stock when new shipments arrive.​
 - Use QR codes for product identification and tracking.

@@ -2,8 +2,9 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from database.database import DatabaseManager
 from database.models import Product, Supplier
-from database.queries import ProductQueries, SupplierQueries
+from database.queries import OrderQueries, ProductQueries, SupplierQueries
 from gui.base_window import BaseWindow
+from gui.order_dialog import OrderDialog
 from gui.product_dialog import ProductDialog
 from gui.supplier_dialog import SupplierDialog
 from utils.qr_code.scanner import QRScannerDialog
@@ -240,9 +241,77 @@ class MainWindow(tk.Toplevel, BaseWindow):
         )
         delete_supplier_button.pack(fill='x', pady=5)
 
+        # Orders tab
+        self.orders_frame = ttk.Frame(self.notebook)
+        self.notebook.add(self.orders_frame, text='Orders')
+
+        # Create orders treeview
+        self.orders_tree = ttk.Treeview(
+            self.orders_frame,
+            columns=('ID', 'Date', 'Status', 'Total'),
+            show='headings'
+        )
+
+        # Configure orders treeview columns
+        self.orders_tree.heading('ID', text='Order ID')
+        self.orders_tree.heading('Date', text='Date')
+        self.orders_tree.heading('Status', text='Status')
+        self.orders_tree.heading('Total', text='Total Amount')
+
+        # Configure column widths
+        self.orders_tree.column('ID', width=80)
+        self.orders_tree.column('Date', width=150)
+        self.orders_tree.column('Status', width=100)
+        self.orders_tree.column('Total', width=120)
+
+        # Add scrollbar for orders
+        orders_scrollbar = ttk.Scrollbar(
+            self.orders_frame,
+            orient='vertical',
+            command=self.orders_tree.yview
+        )
+        self.orders_tree.configure(yscrollcommand=orders_scrollbar.set)
+
+        # Create orders frame for the treeview and buttons
+        orders_content_frame = ttk.Frame(self.orders_frame)
+        orders_content_frame.pack(fill='both', expand=True)
+
+        # Pack the orders treeview and scrollbar in a frame
+        orders_tree_frame = ttk.Frame(orders_content_frame)
+        orders_tree_frame.pack(side='left', fill='both', expand=True)
+
+        self.orders_tree.pack(side='left', fill='both', expand=True)
+        orders_scrollbar.pack(side='right', fill='y')
+
+        # Orders buttons frame
+        orders_buttons_frame = ttk.Frame(orders_content_frame)
+        orders_buttons_frame.pack(side='right', fill='y', padx=10, pady=5)
+
+        # Add order button
+        ttk.Button(
+            orders_buttons_frame,
+            text="New Order",
+            command=self.show_new_order_dialog
+        ).pack(fill='x', pady=(0, 5))
+
+        # Update status button
+        ttk.Button(
+            orders_buttons_frame,
+            text="Update Status",
+            command=self.update_order_status
+        ).pack(fill='x', pady=5)
+
+        # Delete order button
+        ttk.Button(
+            orders_buttons_frame,
+            text="Delete Order",
+            command=self.delete_order
+        ).pack(fill='x', pady=5)
+
         # Load initial data
         self.load_products()
         self.load_suppliers()
+        self.load_orders()
 
     def load_products(self):
         try:
@@ -300,8 +369,122 @@ class MainWindow(tk.Toplevel, BaseWindow):
         self.load_suppliers()
 
     def show_orders(self):
-        # To be implemented
-        messagebox.showinfo("Info", "Orders management coming soon!")
+        self.notebook.select(2)  # Select the orders tab
+        self.load_orders()
+
+    def show_new_order_dialog(self):
+        dialog = OrderDialog(self, self.db.get_connection(), self.user_data['user_id'])
+        self.wait_window(dialog)
+        if dialog.result:
+            self.load_orders()
+
+    def load_orders(self):
+        try:
+            conn = self.db.get_connection()
+            orders = OrderQueries.get_all_orders(conn)
+            
+            # Clear existing items
+            for item in self.orders_tree.get_children():
+                self.orders_tree.delete(item)
+            
+            # Insert orders
+            for order in orders:
+                self.orders_tree.insert('', 'end', values=(
+                    order['order_id'],
+                    order['order_date'],
+                    order['status'],
+                    f"${order['total_amount']:.2f}"
+                ))
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load orders: {str(e)}")
+
+    def update_order_status(self):
+        selected_items = self.orders_tree.selection()
+        if not selected_items:
+            messagebox.showwarning("Warning", "Please select an order to update")
+            return
+        
+        order_id = self.orders_tree.item(selected_items[0])['values'][0]
+        
+        # Create status selection dialog
+        status_dialog = tk.Toplevel(self)
+        status_dialog.title("Update Order Status")
+        status_dialog.geometry("300x170")
+        status_dialog.transient(self)
+        status_dialog.grab_set()
+        
+        # Status options
+        statuses = ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"]
+        status_var = tk.StringVar(value=statuses[0])
+        
+        # Create and pack widgets
+        ttk.Label(
+            status_dialog,
+            text="Select New Status:",
+            font=('Helvetica', 12)
+        ).pack(pady=(20, 10))
+        
+        status_combo = ttk.Combobox(
+            status_dialog,
+            textvariable=status_var,
+            values=statuses,
+            state='readonly'
+        )
+        status_combo.pack(pady=10, padx=20, fill='x')
+        
+        def update_status():
+            try:
+                conn = self.db.get_connection()
+                OrderQueries.update_order_status(
+                    conn,
+                    order_id,
+                    status_var.get()
+                )
+                status_dialog.destroy()
+                self.load_orders()
+                messagebox.showinfo(
+                    "Success",
+                    "Order status updated successfully!"
+                )
+            except Exception as e:
+                messagebox.showerror(
+                    "Error",
+                    f"Failed to update order status: {str(e)}"
+                )
+        
+        # Buttons frame
+        buttons_frame = ttk.Frame(status_dialog)
+        buttons_frame.pack(side='bottom', pady=20, fill='x', padx=20)
+        
+        ttk.Button(
+            buttons_frame,
+            text="Update",
+            command=update_status,
+            style='Accent.TButton'
+        ).pack(side='left', expand=True, padx=5)
+        
+        ttk.Button(
+            buttons_frame,
+            text="Cancel",
+            command=status_dialog.destroy
+        ).pack(side='left', expand=True, padx=5)
+
+    def delete_order(self):
+        selected_items = self.orders_tree.selection()
+        if not selected_items:
+            messagebox.showwarning("Warning", "Please select an order to delete")
+            return
+        
+        order_id = self.orders_tree.item(selected_items[0])['values'][0]
+        
+        if messagebox.askyesno("Confirm Delete", "Are you sure you want to delete this order?"):
+            try:
+                conn = self.db.get_connection()
+                OrderQueries.delete_order(conn, order_id)
+                self.load_orders()
+                messagebox.showinfo("Success", "Order deleted successfully!")
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to delete order: {str(e)}")
 
     def scan_qr_code(self):
         # Check if scanner is already open

@@ -93,6 +93,17 @@ class ProductQueries:
         """, (qr_code_path, product_id))
         conn.commit()
 
+    @staticmethod
+    def update_stock_quantity(conn: sqlite3.Connection, product_id: int, quantity: int) -> None:
+        """Update product stock quantity after an order"""
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE products 
+            SET stock_quantity = stock_quantity - ?
+            WHERE product_id = ?
+        """, (quantity, product_id))
+        conn.commit()
+
 class SupplierQueries:
     @staticmethod
     def create_supplier(conn: sqlite3.Connection, supplier: Supplier) -> int:
@@ -148,7 +159,7 @@ class OrderQueries:
         cursor.execute("""
             INSERT INTO orders (user_id, status, total_amount)
             VALUES (?, ?, ?)
-        """, (order.user_id, order.status, order.total_amount))
+        """, (order.user_id, order.status, float(order.total_amount)))
         conn.commit()
         return cursor.lastrowid
 
